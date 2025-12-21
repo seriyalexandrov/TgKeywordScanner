@@ -1,0 +1,132 @@
+Goal
+
+A local Python command-line tool that monitors multiple Telegram messenger conversations
+(private chats, groups, supergroups, channels, and forum topics) for keyword matches and forwards matching messages into one single destination chat.
+It persists per-source “last processed position” to only process new content on subsequent runs.
+On first time tracking a chat/topic, it processes only the last 24 hours.
+
+Terminology
+	•	Source: a chat/channel that is monitored.
+	•	Destination: the single chat where all matched messages are forwarded.
+	•	Cursor: stored position per source (e.g., last processed message ID and/or timestamp).
+	•	Forum topic: Telegram “topics” inside a supergroup; messages belong to a specific topic_id (thread).
+
+Functional requirements
+
+1) Authentication and access
+
+FR-1 The tool must support authentication methods suitable for reading messages from the user’s Telegram chats:
+	•	User account using api_id + api_hash and a local session (common for accessing “all my chats”).
+
+FR-2 The tool must run locally in MacOS and provide a command line interface.
+
+2) Configuration
+
+FR-3 The tool must load configuration from a file path:
+	•	Default location: user home directory on macOS ~/.telegram-scrapper-config.yaml.
+	•	Override via CLI argument (e.g., --config /path/to/config).
+
+FR-4 The configuration must define:
+	•	A single destination chat ID (the only forward target).
+	•	A list of sources, where each source contains:
+	•	chat_id (required)
+	•	optional topic_id (for forum topics / threaded sources)
+	•	keywords list (required; one or more)
+	•	persisted cursor fields (managed by the tool; not manually edited)
+
+FR-5 The tool must persist cursor updates back to storage after processing, so subsequent runs continue “since last check”.
+
+3) Listing chats and obtaining IDs
+
+FR-6 The tool must provide a CLI mode that enumerates dialogs the authenticated account can see and prints:
+	•	chat/channel title
+	•	chat_id
+	•	type (private / group / supergroup / channel)
+	•	for forum-enabled supergroups: list of topics with topic_id (where feasible) or provide a way to resolve topic IDs from recent messages.
+
+4) Monitoring and message retrieval
+
+FR-7 Run mode must iterate all configured sources and fetch messages as follows:
+	•	If the source has no cursor yet (first time tracked): fetch messages from the last 24 hours only.
+	•	Otherwise: fetch messages since the stored cursor (e.g., message ID > last processed, or timestamp > last processed).
+
+FR-8 The tool must support:
+	•	private chats
+	•	basic groups
+	•	supergroups
+	•	channels
+	•	forum topics (topic/thread-specific monitoring via topic_id)
+
+FR-9 For each fetched message, the tool must evaluate keyword matches against relevant text fields:
+	•	message text
+	•	captions (media captions)
+
+5) Keyword matching
+
+FR-10 For each source, a message matches if it contains any keyword from that source’s keyword set, using the configured match rules:
+	•	case sensitivity = false
+	•	substring
+
+FR-11 Matching must be deterministic and idempotent with respect to the cursor: a message already processed must not be re-forwarded on later runs.
+
+6) Forwarding to the single destination chat
+
+FR-12 When a message matches, the tool must forward it to the configured destination chat:
+	•	Forward as a Telegram forward when possible (preserving original media/message).
+	•	If forward is not permitted by Telegram restrictions, the tool must fall back to copying content (text + available media/caption) if the chosen library supports it; otherwise it must log a clear error for that message.
+
+FR-13 All matches from all sources must go to the same destination chat.
+
+7) Execution model
+
+FR-14 The tool must be runnable as a CLI with at least two commands/modes:
+	•	list-chats (prints IDs)
+	•	run (processes configured sources, forwards matches, updates cursor)
+
+FR-15 The tool must be safe to stop and re-run: partial progress should not corrupt cursor state (cursor writes should be atomic).
+
+Non-functional requirements
+
+Reliability and correctness
+
+NFR-1 Cursor updates must be atomic (write-to-temp then rename) to avoid corruption on crash.
+NFR-2 The tool must handle Telegram API rate limits by backing off and retrying with bounded attempts.
+NFR-3 Failures in one source must not prevent processing other sources (per-source error isolation).
+
+Portability / ease of execution
+
+NFR-4 Must run on macOS using a standard Python interpreter.
+NFR-5 Must have a single, simple install/run path (e.g., pip install ... then CLI entrypoint), with minimal external dependencies.
+
+Security and privacy
+
+NFR-6 API credentials and session data must not be printed in logs.
+NFR-7 Config and session files should be stored under the user’s home directory by default, with recommended restrictive file permissions.
+
+Performance
+
+NFR-8 Message fetching should be incremental (bounded by cursor/24h window) and not re-scan full histories.
+NFR-9 Processing should be efficient for “many sources” (e.g., dozens to hundreds) without excessive memory usage.
+
+Observability
+
+NFR-10 Provide structured logging with at least: start/end, per-source counts (scanned, matched, forwarded), and errors with enough detail to troubleshoot. Log level should be configurable.
+
+⸻
+
+Configuration storage requirements
+
+CFG-1 File format must be machine-editable and human-readable YAML format.
+CFG-2 Must support per-source cursor fields, managed by the tool, such as:
+	•	last_message_id (preferred when available)
+	•	last_timestamp (fallback or for “first-run last 24h” anchoring)
+	•	for forum topics: cursor keyed by (chat_id, topic_id)
+
+
+Edge cases the tool must support
+	•	Messages with media but no text (keyword scan should check caption; if none, skip).
+	•	Edited messages:
+	•	Baseline: only process new messages, not edits (unless explicitly enabled later).
+	•	Forwarding restrictions (e.g., protected content in channels): must log and continue.
+	•	Sources with no recent messages: must update nothing and continue cleanly.
+	•	Duplicate keywords and overlapping sources: must not duplicate forwarding due to cursor logic.
