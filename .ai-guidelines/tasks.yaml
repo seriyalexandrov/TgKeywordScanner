@@ -1,357 +1,382 @@
 plan:
-  project: telegram_keyword_forwarder_cli
-  goal: >
-    Local macOS Python CLI that monitors multiple Telegram sources (chats/groups/channels/forum topics)
-    for keyword matches and forwards matches to a single destination chat, persisting per-source cursors
-    to process only new content (first run: last 24h only).
-
+  title: "Telegram keyword monitor + forwarder (local Python CLI, macOS)"
+  assumptions:
+    - "Environment variables TELEGRAM_API_ID and TELEGRAM_API_HASH are available at runtime."
+    - "Runs locally on macOS with a standard Python interpreter."
   tasks:
     - id: "task 1"
-      completed: false
-      name: "Architecture and library selection"
-      summary: "Define the technical approach and core data model."
+      summary: "Define architecture and library choices"
       description: >
-        Decide the Telegram client library (e.g., Telethon or Pyrogram) based on user-account auth,
-        forwarding/copy capabilities, and forum topic support. Produce a short architecture outline:
-        modules, data flow (list-chats vs run), cursor strategy (message_id preferred, timestamp fallback),
-        and failure-handling principles.
-      depends_on: []
-      children:
+        Finalize the technical approach: choose the Telegram client library (e.g., Telethon),
+        define data models (Source, Cursor, Config), and outline how topics/threads will be represented
+        and filtered during message retrieval. Produce a short internal design note mapping each FR/NFR
+        to a module/function responsibility.
+      dependencies: []
+      completed: false
+      subtasks:
         - id: "task 2"
-          completed: false
-          name: "Define data model and cursor rules"
-          summary: "Specify config schema and cursor semantics."
+          summary: "Select Telegram client library and confirm feature coverage"
           description: >
-            Define YAML schema for destination and sources (chat_id, optional topic_id, keywords),
-            and tool-managed cursor fields (last_message_id, last_timestamp). Specify idempotency rules:
-            a processed message must never be re-forwarded; cursor advances only after successful scan
-            (and optionally after forward attempts, per chosen policy).
-          depends_on: []
+            Evaluate and pick a Python Telegram client that supports user sessions, reading dialogs,
+            iterating messages incrementally, forwarding messages, and (when possible) copying content.
+            Verify how forum topic/thread identifiers are exposed in message objects and how to filter by topic_id.
+          dependencies: ["task 1"]
+          completed: false
         - id: "task 3"
-          completed: false
-          name: "Define execution flow and error isolation"
-          summary: "Specify how run mode processes sources safely."
+          summary: "Define module structure and responsibilities"
           description: >
-            Define per-source processing boundaries so one source failure does not stop others.
-            Decide retry/backoff policy for rate limits and transient errors, and define what constitutes
-            a fatal vs recoverable error.
-          depends_on: []
+            Create a package/module layout (cli, config, storage, telegram_client, matcher, processor, logging)
+            and define clear boundaries: config load/save, cursor atomic persistence, rate-limit handling,
+            per-source isolation, and forwarding fallback behavior.
+          dependencies: ["task 2"]
+          completed: false
 
     - id: "task 4"
-      completed: false
-      name: "Repository scaffolding and packaging"
-      summary: "Create an installable Python CLI project."
+      summary: "Project scaffolding and packaging"
       description: >
-        Initialize repository structure, dependency management, and CLI entrypoint so the tool can be
-        installed and executed via a single command. Keep dependencies minimal and macOS-friendly.
-      depends_on: ["task 1"]
-      children:
+        Create a Python project structure that can be installed and run as a CLI entrypoint.
+        Include pinned/minimum dependency versions, a lock strategy (optional), and basic developer tooling.
+      dependencies: ["task 3"]
+      completed: false
+      subtasks:
         - id: "task 5"
-          completed: false
-          name: "Project skeleton (pyproject, src layout, entrypoint)"
-          summary: "Set up packaging and console script."
+          summary: "Create repository layout and Python package"
           description: >
-            Create pyproject.toml, src/ package layout, and a console script entrypoint for the CLI.
-            Pin minimal required dependencies (Telegram client lib, YAML parser, CLI framework, logging).
-          depends_on: []
+            Initialize the package directory (e.g., telegram_scrapper/), add __init__.py,
+            and create placeholders for each module. Add a pyproject.toml (or setup.cfg)
+            defining dependencies and an entrypoint command.
+          dependencies: ["task 4"]
+          completed: false
         - id: "task 6"
-          completed: false
-          name: "Dev tooling (lint/test hooks)"
-          summary: "Add basic quality gates."
+          summary: "Add dependency set and runtime constraints"
           description: >
-            Add formatter/linter configuration and a test runner setup to ensure consistent code style
-            and repeatable checks.
-          depends_on: []
+            Add dependencies for Telegram client, YAML parsing, and structured logging.
+            Define supported Python versions and keep dependencies minimal to satisfy NFR-5.
+          dependencies: ["task 5"]
+          completed: false
 
     - id: "task 7"
-      completed: false
-      name: "Configuration load/store with atomic cursor persistence"
-      summary: "Implement YAML config handling and safe writes."
+      summary: "Configuration schema and YAML I/O"
       description: >
-        Load config from default path (~/.telegram-scrapper-config.yaml) or --config override, validate
-        required fields, and persist tool-managed cursor updates using atomic write (temp file + rename).
-        Ensure config is human-readable and machine-editable.
-      depends_on: ["task 4"]
-      children:
+        Implement loading, validation, and saving of the YAML configuration file with the required
+        fields (destination, sources, keywords, optional topic_id) and tool-managed cursor fields.
+      dependencies: ["task 6"]
+      completed: false
+      subtasks:
         - id: "task 8"
-          completed: false
-          name: "Config loader and schema validation"
-          summary: "Parse YAML and validate required fields."
+          summary: "Define config schema and defaults"
           description: >
-            Implement YAML parsing, validate destination_chat_id, and validate each source has chat_id
-            and a non-empty keywords list. Normalize keywords (e.g., dedupe) without changing semantics.
-            Do not log secrets.
-          depends_on: []
+            Specify the YAML structure: destination_chat_id, sources[] with chat_id, optional topic_id,
+            keywords[], and cursor fields (last_message_id, last_timestamp). Define default config path
+            ~/.telegram-scrapper-config.yaml and allow override via --config.
+          dependencies: ["task 7"]
+          completed: false
         - id: "task 9"
-          completed: false
-          name: "Cursor store and atomic writer"
-          summary: "Persist per-source cursor updates safely."
+          summary: "Implement config loader + validator"
           description: >
-            Implement write-to-temp-then-rename persistence (NFR-1). Update only cursor fields managed
-            by the tool. Ensure partial progress cannot corrupt the config; if a crash happens mid-run,
-            the previous valid config remains intact.
-          depends_on: []
+            Load YAML from disk, validate required fields and types, normalize duplicates in keywords,
+            and ensure no secrets are logged. On missing file, provide a clear error with expected format.
+          dependencies: ["task 8"]
+          completed: false
         - id: "task 10"
-          completed: false
-          name: "Default file location and permissions"
-          summary: "Use secure defaults under the home directory."
+          summary: "Implement atomic config persistence for cursor updates"
           description: >
-            Resolve default config path under the user’s home directory. On creation, recommend/ensure
-            restrictive permissions (e.g., user-only read/write) for config and session files (NFR-7).
-          depends_on: []
+            Save updated cursor fields back into the same YAML file using atomic write
+            (write to temp file in same directory, fsync if practical, then rename).
+          dependencies: ["task 9"]
+          completed: false
 
     - id: "task 11"
-      name: "Telegram authentication and session management"
-      completed: false
-      summary: "Support user-account login with local session storage."
+      summary: "Local session authentication and storage"
       description: >
-        Implement authentication via api_id/api_hash and a local session file so the tool can access
-        the user’s dialogs. Ensure credentials/session are never printed in logs (NFR-6).
-      depends_on: ["task 7"]
-      children:
+        Implement Telegram authentication using TELEGRAM_API_ID/TELEGRAM_API_HASH and a local session file
+        stored under the user’s home directory by default, without printing credentials or session data.
+      dependencies: ["task 10"]
+      completed: false
+      subtasks:
         - id: "task 12"
-          name: "Session initialization and reuse"
+          summary: "Implement session file location and permissions"
+          description: >
+            Store the Telegram session under a deterministic home-directory path (e.g., ~/.telegram-scrapper-session)
+            and recommend restrictive file permissions (e.g., chmod 600 where applicable). Ensure paths are configurable
+            only if needed, otherwise keep defaults.
+          dependencies: ["task 11"]
           completed: false
-          summary: "Create/reuse a local Telegram session."
-          description: >
-            Implement client startup that reuses an existing session if present, otherwise performs an
-            interactive login (code/password if required). Store session under the home directory by default.
-          depends_on: []
         - id: "task 13"
-          name: "Safe logging guardrails for secrets"
-          summary: "Prevent accidental credential/session leakage."
+          summary: "Implement login flow and connectivity checks"
           description: >
-            Add logging filters/redaction patterns and ensure exceptions do not dump sensitive values.
-            Confirm CLI help and debug logs never echo api_hash/session payloads.
-          depends_on: []
+            Create a Telegram client wrapper that initializes the session, prompts for login if needed
+            (interactive terminal), and performs a minimal connectivity check before executing commands.
+          dependencies: ["task 12"]
+          completed: false
 
     - id: "task 14"
-      name: "CLI framework and command wiring"
-      completed: false
-      summary: "Implement CLI with list-chats and run commands."
+      summary: "CLI interface with commands and options"
       description: >
-        Provide a macOS-friendly CLI with subcommands: list-chats and run (FR-14), plus global flags
-        like --config and --log-level. Ensure consistent exit codes and structured logs.
-      depends_on: ["task 11"]
-      children:
+        Build the command-line interface supporting list-chats and run modes, config path override,
+        and configurable log level. Ensure the CLI is stable for repeated use (FR-14).
+      dependencies: ["task 13"]
+      completed: false
+      subtasks:
         - id: "task 15"
-          completed: false
-          name: "Global CLI options and config resolution"
-          summary: "Wire --config and logging flags."
+          summary: "Implement CLI parsing and global options"
           description: >
-            Implement default config path resolution and --config override. Add --log-level and ensure
-            logs are structured and readable, with optional verbosity.
-          depends_on: []
+            Implement argument parsing for: subcommands (list-chats, run), --config path override,
+            and --log-level. Validate arguments early and provide concise help text.
+          dependencies: ["task 14"]
+          completed: false
         - id: "task 16"
-          completed: false
-          name: "Command stubs and help text"
-          summary: "Create list-chats and run command shells."
+          summary: "Wire CLI to application services"
           description: >
-            Implement CLI command registration, help/usage output, and argument validation before any
-            Telegram calls are made.
-          depends_on: []
+            Connect CLI commands to config loader, Telegram client wrapper, and processing pipeline,
+            ensuring clean exit codes and no leaking of sensitive information.
+          dependencies: ["task 15"]
+          completed: false
 
     - id: "task 17"
-      completed: false
-      name: "list-chats implementation"
-      summary: "Enumerate dialogs and provide IDs/types; assist with topic IDs."
+      summary: "list-chats implementation (dialogs and topic resolution)"
       description: >
-        Implement list-chats mode (FR-6): print dialog title, chat_id, and type. For forum-enabled
-        supergroups, provide topic discovery where feasible or a practical way to resolve topic_id from
-        recent messages/threads.
-      depends_on: ["task 14"]
-      children:
+        Implement enumeration of dialogs visible to the authenticated account and print title, chat_id,
+        and chat type; for forum-enabled supergroups, provide topic_id information where feasible or a
+        practical method to derive topic IDs from recent messages (FR-6).
+      dependencies: ["task 16"]
+      completed: false
+      subtasks:
         - id: "task 18"
-          completed: false
-          name: "Dialog enumeration and type classification"
-          summary: "List accessible chats/channels with metadata."
+          summary: "Enumerate dialogs and print IDs + types"
           description: >
-            Fetch dialogs the account can see and classify as private/group/supergroup/channel.
-            Print stable identifiers and human-friendly titles.
-          depends_on: []
+            Fetch all dialogs, determine whether each is private/group/supergroup/channel,
+            and print a readable list with title, chat_id, and type. Keep output stable for scripting.
+          dependencies: ["task 17"]
+          completed: false
         - id: "task 19"
-          completed: false
-          name: "Forum topic discovery support"
-          summary: "Expose topic IDs for forum-enabled groups."
+          summary: "Support forum topic discovery guidance"
           description: >
-            Implement topic listing if supported by the chosen library; otherwise provide a best-effort
-            method to derive topic_id from recent thread messages (e.g., inspecting thread identifiers).
-            Clearly present what was found and how to use it in config.
-          depends_on: []
+            For forum-enabled supergroups: attempt to list topics if the library supports it.
+            If not available, provide a way to resolve topic_id from recent messages (e.g., show recent messages
+            with their thread/topic identifiers when present) so the user can populate topic_id in config.
+          dependencies: ["task 18"]
+          completed: false
 
     - id: "task 20"
-      completed: false
-      name: "Run mode: incremental monitoring pipeline"
-      summary: "Fetch new messages per source, match keywords, forward, and persist cursors."
+      summary: "Message retrieval strategy (incremental + first-run 24h window)"
       description: >
-        Implement run mode (FR-7..FR-15): iterate sources, fetch only new content (first run: last 24h),
-        match keywords (case-insensitive substring), forward/copy to destination, and update per-source
-        cursor atomically. Ensure per-source isolation and bounded memory usage.
-      depends_on: ["task 14"]
-      children:
+        Implement per-source message fetching that only processes new content:
+        first time tracked => last 24 hours; otherwise => since stored cursor. Ensure it works across
+        private chats, groups, supergroups, channels, and forum topics (FR-7, FR-8, NFR-8).
+      dependencies: ["task 19"]
+      completed: false
+      subtasks:
         - id: "task 21"
-          completed: false
-          name: "Per-source fetch window and cursor logic"
-          summary: "Compute message ranges to scan."
+          summary: "Implement cursor model and source keying"
           description: >
-            For first-time sources (no cursor): set lower bound to now-24h. Otherwise fetch since cursor
-            (prefer message_id > last_message_id when available; timestamp fallback as defined in task 2).
-            Support forum topics via (chat_id, topic_id) scoping.
-          depends_on: []
+            Define cursor fields (last_message_id preferred, last_timestamp fallback) and ensure forum topics
+            are uniquely keyed by (chat_id, topic_id). Ensure absent cursor is treated as first-run.
+          dependencies: ["task 20"]
+          completed: false
         - id: "task 22"
-          completed: false
-          name: "Message retrieval and filtering"
-          summary: "Retrieve messages efficiently and safely."
+          summary: "Implement incremental fetch by message id/timestamp"
           description: >
-            Fetch messages incrementally, avoiding full history scans (NFR-8). Ignore non-content/system
-            events if needed. Handle messages with media but no text by checking captions; if no text/caption,
-            skip matching (edge case requirement).
-          depends_on: []
+            For each source: if last_message_id exists, fetch messages with id > last_message_id; otherwise,
+            fetch messages newer than last_timestamp; for first-run, set the lower bound to now-24h.
+            Ensure results are processed in ascending order for deterministic cursor advancement.
+          dependencies: ["task 21"]
+          completed: false
         - id: "task 23"
-          completed: false
-          name: "Keyword matching engine"
-          summary: "Deterministic case-insensitive substring matching."
+          summary: "Implement forum topic filtering"
           description: >
-            Implement matching per source: a message matches if any keyword is contained in message text
-            or caption, case-insensitive, substring (FR-10). Ensure deterministic behavior and avoid duplicate
-            matches within the same message due to repeated keywords.
-          depends_on: []
-        - id: "task 24"
+            When topic_id is configured, filter fetched messages to only those belonging to that topic/thread
+            using the library’s exposed thread/topic identifiers. Ensure messages from other topics are ignored.
+          dependencies: ["task 22"]
           completed: false
-          name: "Forwarding with fallback copy and restriction handling"
-          summary: "Forward when possible, otherwise copy or log."
-          description: >
-            Attempt Telegram forward to destination (preserving original). If restricted (e.g., protected content),
-            fall back to copying text and any supported media/caption if the library supports it; otherwise log a
-            clear per-message error and continue (FR-12).
-          depends_on: []
+
+    - id: "task 24"
+      summary: "Keyword matching (case-insensitive substring, deterministic)"
+      description: >
+        Implement matching for each source: a message matches if any configured keyword appears as a
+        case-insensitive substring in message text or caption. Ensure deterministic behavior and that
+        processed messages are not re-forwarded due to cursor logic (FR-10, FR-11).
+      dependencies: ["task 23"]
+      completed: false
+      subtasks:
         - id: "task 25"
-          completed: false
-          name: "Cursor advancement and atomic persistence integration"
-          summary: "Update cursors without breaking idempotency."
+          summary: "Extract message text fields for scanning"
           description: >
-            Advance cursor in a way that guarantees already-processed messages are never re-forwarded (FR-11).
-            Persist cursor updates via the atomic writer from task 9. Ensure safe stop/re-run behavior (FR-15).
-          depends_on: []
+            Implement extraction of relevant fields: message text and media caption. If neither exists,
+            skip matching for that message (edge case support).
+          dependencies: ["task 24"]
+          completed: false
         - id: "task 26"
-          completed: false
-          name: "Per-source error isolation and bounded retries"
-          summary: "Keep processing other sources when one fails."
+          summary: "Implement matcher with normalization"
           description: >
-            Wrap each source processing in error boundaries. Implement bounded retries with backoff for rate limits
-            and transient Telegram errors (NFR-2), and ensure failures don’t stop remaining sources (NFR-3).
-          depends_on: []
+            Lowercase both haystack and keywords; de-duplicate keywords; implement substring checks.
+            Keep matching idempotent by ensuring each message is evaluated once per run and cursor advances
+            only after processing.
+          dependencies: ["task 25"]
+          completed: false
 
     - id: "task 27"
-      completed: false
-      name: "Observability and operational logging"
-      summary: "Structured logs with per-source metrics and configurable verbosity."
+      summary: "Forwarding to destination with fallback-to-copy"
       description: >
-        Implement logging required by NFR-10: start/end markers, per-source scanned/matched/forwarded counts,
-        and errors with enough detail to debug. Support configurable log level via CLI/config.
-      depends_on: ["task 20"]
-      children:
+        Implement forwarding of matched messages to the single destination chat.
+        Prefer Telegram forward (preserving original), and fall back to copying content when forwarding is blocked;
+        otherwise log a clear per-message error and continue (FR-12, FR-13).
+      dependencies: ["task 26"]
+      completed: false
+      subtasks:
         - id: "task 28"
-          completed: false
-          name: "Structured log format and counters"
-          summary: "Standardize log events and metrics."
+          summary: "Implement forward operation"
           description: >
-            Implement consistent log fields (command, source identifier, counts, timings, error codes/messages).
-            Ensure logs avoid sensitive content (credentials/session).
-          depends_on: []
+            Use Telegram API/library to forward the original message to the destination chat when permitted.
+            Preserve media and attribution as a forward.
+          dependencies: ["task 27"]
+          completed: false
         - id: "task 29"
-          completed: false
-          name: "User-facing summaries per run"
-          summary: "Provide concise end-of-run reporting."
+          summary: "Implement copy fallback or error reporting"
           description: >
-            Emit an end-of-run summary aggregating per-source results and listing sources with failures,
-            without stopping the run prematurely.
-          depends_on: []
+            If forward fails due to restrictions (e.g., protected content), attempt a best-effort copy:
+            send text and available media/caption if supported by the library. If not supported or copy fails,
+            log an actionable error including source, message id, and reason, then continue.
+          dependencies: ["task 28"]
+          completed: false
 
     - id: "task 30"
-      completed: false
-      name: "Security and privacy hardening"
-      summary: "Ensure local artifacts are safe by default."
+      summary: "Run pipeline: per-source processing, isolation, and cursor updates"
       description: >
-        Verify config/session storage locations under home directory, apply restrictive permissions guidance,
-        and ensure logs never print secrets. Confirm behavior on shared machines is clearly safe by default.
-      depends_on: ["task 27"]
-      children:
+        Implement the run command processing loop across all configured sources:
+        fetch incrementally, match, forward, and persist updated cursors. Failures in one source must not block others,
+        and cursor writes must be safe and atomic (FR-15, NFR-1, NFR-3).
+      dependencies: ["task 29"]
+      completed: false
+      subtasks:
         - id: "task 31"
-          completed: false
-          name: "File permission enforcement and checks"
-          summary: "Harden config/session file permissions."
+          summary: "Per-source execution wrapper with error isolation"
           description: >
-            On write/create, enforce or warn if permissions are too open. Keep behavior macOS-compatible and
-            avoid breaking existing valid setups.
-          depends_on: []
+            Wrap each source processing in try/except; collect per-source stats; ensure exceptions
+            are logged and processing continues with the next source.
+          dependencies: ["task 30"]
+          completed: false
         - id: "task 32"
-          completed: false
-          name: "Sensitive data handling review"
-          summary: "Audit code paths for secret leakage."
+          summary: "Deterministic cursor advancement rules"
           description: >
-            Review exception paths, debug logs, and config dumps to ensure api_hash, session content, and other
-            sensitive data are not emitted.
-          depends_on: []
+            Advance cursor only after a message is fully processed (matched evaluation + forward/copy attempt).
+            Update last_message_id/last_timestamp to the highest successfully processed message to prevent reprocessing.
+          dependencies: ["task 31"]
+          completed: false
+        - id: "task 33"
+          summary: "Atomic persistence of updated cursors"
+          description: >
+            Persist cursor updates back into the YAML config using the atomic write mechanism.
+            Ensure partial progress is not lost and does not corrupt the config file on interruption/crash.
+          dependencies: ["task 32"]
+          completed: false
 
-    - id: "task 33"
-      completed: false
-      name: "Testing and validation"
-      summary: "Prove correctness for cursors, matching, forwarding behavior, and resilience."
+    - id: "task 34"
+      summary: "Rate limit handling and bounded retries"
       description: >
-        Add unit tests for config parsing, cursor updates, atomic write behavior, and keyword matching.
-        Add integration-style tests using mocks/stubs for Telegram API calls, and a manual test checklist
-        for real accounts/chats.
-      depends_on: ["task 30"]
-      children:
-        - id: "task 34"
-          completed: false
-          name: "Unit tests for config/cursor/matching"
-          summary: "Cover deterministic logic with fast tests."
-          description: >
-            Test YAML load/validate, cursor read/write (including crash-safe atomic replace semantics),
-            first-run 24h window computation, and case-insensitive substring matching across text/caption.
-          depends_on: []
+        Implement handling for Telegram API rate limits and transient failures with backoff and bounded retries,
+        without risking infinite loops or blocking all sources (NFR-2).
+      dependencies: ["task 33"]
+      completed: false
+      subtasks:
         - id: "task 35"
-          completed: false
-          name: "Mocked integration tests for run pipeline"
-          summary: "Validate orchestration without hitting Telegram."
+          summary: "Detect rate-limit signals and backoff"
           description: >
-            Mock client calls to simulate message streams, rate limits, forwarding failures/restrictions,
-            and ensure per-source isolation and cursor advancement rules hold.
-          depends_on: []
+            Identify library exceptions/return codes that indicate flood wait or rate limiting.
+            Implement sleep/backoff according to server-provided wait time when available.
+          dependencies: ["task 34"]
+          completed: false
         - id: "task 36"
-          completed: false
-          name: "Manual test checklist"
-          summary: "Validate on real chats/groups/channels/topics."
+          summary: "Bounded retry policy for transient failures"
           description: >
-            Step-by-step checklist to verify list-chats output, topic_id resolution, first-run 24h behavior,
-            incremental runs, protected content handling, and safe re-run after interruption.
-          depends_on: []
+            Implement a small retry budget per operation (fetch/forward/copy), with exponential backoff caps.
+            On repeated failure, log and continue to next message/source as appropriate.
+          dependencies: ["task 35"]
+          completed: false
 
     - id: "task 37"
-      completed: false
-      name: "Documentation and deliverable packaging"
-      summary: "Provide clear install, config, and usage documentation."
+      summary: "Structured logging and metrics"
       description: >
-        Write README with installation, authentication notes, config example, list-chats usage, run usage,
-        logging options, and troubleshooting guidance. Ensure a single install/run path and produce a minimal
-        release artifact.
-      depends_on: ["task 33"]
-      children:
+        Add structured logging with configurable levels. Log start/end of runs, per-source counts
+        (scanned, matched, forwarded), and errors with sufficient context while avoiding secrets (NFR-10, NFR-6).
+      dependencies: ["task 36"]
+      completed: false
+      subtasks:
         - id: "task 38"
-          completed: false
-          name: "README and example config"
-          summary: "Document setup and configuration."
+          summary: "Implement logging configuration and formatting"
           description: >
-            Provide a sample YAML config including destination, sources, keywords, and tool-managed cursor fields
-            (clearly marked as managed). Document default config path and --config override.
-          depends_on: []
+            Provide a consistent log format (structured fields or predictable key=value) and support --log-level.
+            Ensure logs never print TELEGRAM_API_HASH, session strings, or other sensitive payloads.
+          dependencies: ["task 37"]
+          completed: false
         - id: "task 39"
-          completed: false
-          name: "Operational notes and troubleshooting"
-          summary: "Document common failures and how logs explain them."
+          summary: "Per-source counters and run summary"
           description: >
-            Document rate limit behavior, forwarding restrictions, missing permissions, and topic_id discovery
-            limitations, with guidance on interpreting per-source logs and counters.
-          depends_on: []
+            Track and log per-source stats: messages scanned, matches, forwards succeeded, copy fallbacks,
+            and failures. Emit a final summary at run end.
+          dependencies: ["task 38"]
+          completed: false
+
+    - id: "task 40"
+      summary: "Security and file-system hygiene"
+      description: >
+        Ensure config and session files default to the user’s home directory, recommend restrictive permissions,
+        and avoid accidental credential leakage in output (NFR-6, NFR-7).
+      dependencies: ["task 39"]
+      completed: false
+      subtasks:
+        - id: "task 41"
+          summary: "Harden file permissions recommendations"
+          description: >
+            Document and (where feasible) enforce restrictive permissions for config/session files.
+            Ensure temp files used for atomic writes are created safely in the same directory.
+          dependencies: ["task 40"]
+          completed: false
+
+    - id: "task 42"
+      summary: "Runner script for zero-hassle local execution"
+      description: >
+        Provide a runner script that creates/uses a virtual environment, installs dependencies if needed,
+        runs the CLI, and exits cleanly without requiring the user to manage activation/deactivation manually.
+      dependencies: ["task 41"]
+      completed: false
+      subtasks:
+        - id: "task 43"
+          summary: "Implement macOS-friendly runner script"
+          description: >
+            Create a script (e.g., run.sh) that: creates .venv if missing, upgrades pip,
+            installs the package (editable or wheel), executes the CLI with passed arguments,
+            and returns the CLI exit code. Avoid leaving the user in an activated shell environment.
+          dependencies: ["task 42"]
+          completed: false
+        - id: "task 44"
+          summary: "Document one-line usage examples"
+          description: >
+            Provide concise examples for list-chats and run, including optional --config and --log-level usage,
+            and explain where session/config files are stored by default.
+          dependencies: ["task 43"]
+          completed: false
+
+    - id: "task 45"
+      summary: "Testing and validation against requirements"
+      description: >
+        Validate correctness, idempotency, and resilience: confirm first-run 24h behavior, cursor persistence,
+        topic filtering, forwarding fallback behavior, and per-source isolation. Add lightweight automated tests
+        where feasible and a manual test checklist for real Telegram environments.
+      dependencies: ["task 44"]
+      completed: false
+      subtasks:
+        - id: "task 46"
+          summary: "Unit tests for matcher, cursor logic, and atomic write"
+          description: >
+            Add tests for case-insensitive substring matching, keyword de-duplication, message field extraction,
+            cursor advancement rules, and atomic write (temp + rename) behavior.
+          dependencies: ["task 45"]
+          completed: false
+        - id: "task 47"
+          summary: "Manual integration test checklist (real account)"
+          description: >
+            Verify list-chats output, run mode processing for each chat type, topic_id filtering,
+            forwarding restrictions handling, rate-limit backoff behavior, and safe stop/re-run idempotency.
+          dependencies: ["task 46"]
+          completed: false

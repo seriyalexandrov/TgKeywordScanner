@@ -1,6 +1,13 @@
 .idea
 .venv
 *.iml
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+build/
+dist/
+.DS_Store
 
 # Default ignored files
 /shelf/

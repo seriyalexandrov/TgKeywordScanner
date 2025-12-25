@@ -4,6 +4,7 @@ A local Python command-line tool that monitors multiple Telegram messenger conve
 (private chats, groups, supergroups, channels, and forum topics) for keyword matches and forwards matching messages into one single destination chat.
 It persists per-source “last processed position” to only process new content on subsequent runs.
 On first time tracking a chat/topic, it processes only the last 24 hours.
+We can assume that environment variables TELEGRAM_API_ID and TELEGRAM_API_HASH are already available.
 
 Terminology
 	•	Source: a chat/channel that is monitored.
@@ -96,7 +97,7 @@ NFR-3 Failures in one source must not prevent processing other sources (per-sour
 Portability / ease of execution
 
 NFR-4 Must run on macOS using a standard Python interpreter.
-NFR-5 Must have a single, simple install/run path (e.g., pip install ... then CLI entrypoint), with minimal external dependencies.
+NFR-5 Must have a single execution sh runner script which creates virtual environment, installs dependencies if necessary, runs program and deactivatse environment so that user doesn't need to care about setup.
 
 Security and privacy
 
