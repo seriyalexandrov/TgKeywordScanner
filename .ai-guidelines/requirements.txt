@@ -4,7 +4,7 @@ A local Python command-line tool that monitors multiple Telegram messenger conve
 (private chats, groups, supergroups, channels, and forum topics) for keyword matches and forwards matching messages into one single destination chat.
 It persists per-source “last processed position” to only process new content on subsequent runs.
 On first time tracking a chat/topic, it processes only the last 24 hours.
-We can assume that environment variables TELEGRAM_API_ID and TELEGRAM_API_HASH are already available.
+We can assume that environment variables TELEGRAM_API_ID, TELEGRAM_API_HASH and TELEGRAM_SESSION_STRING are already available.
 
 Terminology
 	•	Source: a chat/channel that is monitored.
@@ -17,7 +17,7 @@ Functional requirements
 1) Authentication and access
 
 FR-1 The tool must support authentication methods suitable for reading messages from the user’s Telegram chats:
-	•	User account using api_id + api_hash and a local session (common for accessing “all my chats”).
+	•	User account using api_id + api_hash and a local session (TELEGRAM_SESSION_STRING).
 
 FR-2 The tool must run locally in MacOS and provide a command line interface.
 
