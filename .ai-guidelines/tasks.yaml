@@ -12,7 +12,7 @@ plan:
         forwarding/copy fallbacks, and forum topic handling. Define core modules (config, storage, telegram client,
         matcher, forwarder, logging, CLI) and overall execution flow for list-chats and run modes.
       dependencies: []
-      completed: false
+      completed: true
       subtasks:
         - id: "task 1.1"
           title: "Select Telegram client library and capabilities"
@@ -22,7 +22,7 @@ plan:
             incrementally via IDs/timestamps, filtering by thread/topic_id, forwarding messages, and (if possible)
             copying media/text when forwarding is restricted. Document limitations and fallback behaviors.
           dependencies: []
-          completed: false
+          completed: true
         - id: "task 1.2"
           title: "Define internal data model"
           summary: "Establish config schema, cursor schema, and runtime counters."
@@ -31,7 +31,7 @@ plan:
             and tool-managed cursor fields (last_message_id, last_timestamp). Define in-memory representations
             including per-source keys (chat_id, topic_id) and per-run stats (scanned, matched, forwarded, errors).
           dependencies: []
-          completed: false
+          completed: true
 
     - id: "task 2"
       title: "Set up project skeleton and packaging"
@@ -40,7 +40,7 @@ plan:
         Create a Python package layout with clear modules and a CLI entry point. Add dependency declarations,
         minimal README/run instructions, and ensure compatibility with macOS Python environments.
       dependencies: ["task 1"]
-      completed: false
+      completed: true
       subtasks:
         - id: "task 2.1"
           title: "Create module structure"
@@ -49,7 +49,7 @@ plan:
             Create modules such as: cli.py, telegram_client.py, config.py, storage.py, matcher.py, forwarder.py,
             logging_setup.py, and utils.py. Ensure imports and boundaries support testing and maintainability.
           dependencies: ["task 1"]
-          completed: false
+          completed: true
         - id: "task 2.2"
           title: "Define dependencies and lock strategy"
           summary: "Pin required packages."
@@ -57,7 +57,7 @@ plan:
             Add requirements with pinned versions for Telegram client library, YAML parser, CLI framework
             (argparse/click/typer), and structured logging. Ensure installation works in a fresh venv on macOS.
           dependencies: ["task 1"]
-          completed: false
+          completed: true
 
     - id: "task 3"
       title: "Implement configuration loading and validation"
@@ -67,7 +67,7 @@ plan:
         Validate that destination_chat_id exists, sources contain required fields, keywords list is non-empty,
         and reject/repair malformed cursor fields without exposing sensitive data.
       dependencies: ["task 2"]
-      completed: false
+      completed: true
       subtasks:
         - id: "task 3.1"
           title: "Implement YAML config loader"
@@ -76,7 +76,7 @@ plan:
             Resolve default config path under the user home directory on macOS. Implement --config path override.
             Provide clear errors for missing/unreadable/invalid YAML files.
           dependencies: ["task 2"]
-          completed: false
+          completed: true
         - id: "task 3.2"
           title: "Implement config schema validation"
           summary: "Validate required fields and normalize inputs."
@@ -85,7 +85,7 @@ plan:
             (trim whitespace, drop empty, de-duplicate). Validate optional topic_id as integer when present.
             Preserve tool-managed cursor fields if present; ignore unexpected fields safely.
           dependencies: ["task 3.1"]
-          completed: false
+          completed: true
         - id: "task 3.3"
           title: "Enforce safe default permissions guidance"
           summary: "Ensure config path expectations and recommend restrictive permissions."
@@ -93,7 +93,7 @@ plan:
             Ensure the config is stored under the user's home directory by default. Implement warnings (not secrets)
             when permissions are overly permissive, and avoid printing credentials/session values.
           dependencies: ["task 3.1"]
-          completed: false
+          completed: true
 
     - id: "task 4"
       title: "Implement atomic storage for cursor persistence"
@@ -102,7 +102,7 @@ plan:
         Implement reading/writing YAML with atomic updates (write temp file then rename). Ensure cursor writes
         do not corrupt state on interruption, and updates are per-source keyed by (chat_id, topic_id).
       dependencies: ["task 3"]
-      completed: false
+      completed: true
       subtasks:
         - id: "task 4.1"
           title: "Implement source keying for cursor updates"
@@ -111,7 +111,7 @@ plan:
             Implement a stable key for cursor mapping based on chat_id and optional topic_id. Ensure that
             sources with same chat_id but different topic_id keep separate cursors, and duplicates are detected.
           dependencies: ["task 3"]
-          completed: false
+          completed: true
         - id: "task 4.2"
           title: "Implement atomic YAML write"
           summary: "Write-to-temp then rename."
@@ -120,7 +120,7 @@ plan:
             fsync if needed, then atomic rename to the target path. Ensure partial progress cannot leave a
             corrupted YAML.
           dependencies: ["task 4.1"]
-          completed: false
+          completed: true
         - id: "task 4.3"
           title: "Implement cursor update strategy"
           summary: "Update cursor only after processing messages."
@@ -129,7 +129,7 @@ plan:
             Ensure idempotency: store the maximum processed position and never move cursor backwards.
             Avoid updating cursor when no messages were fetched.
           dependencies: ["task 4.2"]
-          completed: false
+          completed: true
 
     - id: "task 5"
       title: "Implement Telegram authentication and client wrapper"
@@ -139,7 +139,7 @@ plan:
         TELEGRAM_SESSION_STRING, and exposes helper methods for listing dialogs, listing topics where feasible,
         fetching messages incrementally, and forwarding/copying messages.
       dependencies: ["task 2", "task 3"]
-      completed: false
+      completed: true
       subtasks:
         - id: "task 5.1"
           title: "Implement session-based login"
@@ -148,7 +148,7 @@ plan:
             Initialize the Telegram client using the session string environment variable and validate
             connectivity. Ensure logs never print API ID/hash/session string.
           dependencies: ["task 2", "task 3"]
-          completed: false
+          completed: true
         - id: "task 5.2"
           title: "Implement rate limit handling primitives"
           summary: "Backoff and bounded retries."
@@ -157,7 +157,7 @@ plan:
             exponential backoff with jitter and a maximum number of retries. Ensure errors surface with
             context but without secrets.
           dependencies: ["task 5.1"]
-          completed: false
+          completed: true
         - id: "task 5.3"
           title: "Implement per-source error isolation"
           summary: "Failures in one source do not block others."
@@ -165,7 +165,7 @@ plan:
             Structure client calls so exceptions are caught per-source during run mode. Aggregate errors
             for reporting while continuing processing other sources.
           dependencies: ["task 5.2"]
-          completed: false
+          completed: true
 
     - id: "task 6"
       title: "Implement list-chats CLI mode"
@@ -175,7 +175,7 @@ plan:
         attempt to enumerate topics where feasible; otherwise provide a deterministic way to resolve topic IDs
         from recent messages/threads within that supergroup.
       dependencies: ["task 5"]
-      completed: false
+      completed: true
       subtasks:
         - id: "task 6.1"
           title: "Enumerate dialogs and chat metadata"
@@ -184,7 +184,7 @@ plan:
             Iterate dialogs available to the authenticated user and print: title, chat_id, and type
             (private/group/supergroup/channel). Ensure output is stable and script-friendly.
           dependencies: ["task 5"]
-          completed: false
+          completed: true
         - id: "task 6.2"
           title: "Forum topic discovery support"
           summary: "List topics or provide topic_id resolution method."
@@ -193,7 +193,7 @@ plan:
             If direct enumeration is not supported by the library/API, implement a mode that inspects recent
             messages and prints observed topic/thread identifiers to help configure sources.
           dependencies: ["task 6.1"]
-          completed: false
+          completed: true
 
     - id: "task 7"
       title: "Implement incremental message retrieval per source"
@@ -203,7 +203,7 @@ plan:
         24 hours only. Otherwise fetch messages newer than last cursor (message_id and/or timestamp).
         Support chats, channels, supergroups, and forum topics via topic_id where applicable.
       dependencies: ["task 4", "task 5"]
-      completed: false
+      completed: true
       subtasks:
         - id: "task 7.1"
           title: "Compute fetch window from cursor"
@@ -213,7 +213,7 @@ plan:
             when available; otherwise use last_timestamp. Ensure boundaries avoid re-processing already handled
             messages.
           dependencies: ["task 4", "task 5"]
-          completed: false
+          completed: true
         - id: "task 7.2"
           title: "Fetch messages for chat/channel/supergroup"
           summary: "Iterate messages incrementally without full history scans."
@@ -221,7 +221,7 @@ plan:
             Implement message iteration that yields messages newer than the computed window. Keep memory usage
             low by streaming messages rather than loading all into memory.
           dependencies: ["task 7.1"]
-          completed: false
+          completed: true
         - id: "task 7.3"
           title: "Fetch messages for forum topics"
           summary: "Restrict retrieval to a specific topic/thread."
@@ -229,7 +229,7 @@ plan:
             When topic_id is configured, fetch only messages belonging to that topic/thread. Ensure cursor is
             tracked per (chat_id, topic_id) and message iteration respects that scope.
           dependencies: ["task 7.1"]
-          completed: false
+          completed: true
 
     - id: "task 8"
       title: "Implement keyword matching"
@@ -239,7 +239,7 @@ plan:
         in message text or media caption. Skip messages with no text and no caption. Ensure deterministic
         behavior for idempotency.
       dependencies: ["task 7"]
-      completed: false
+      completed: true
       subtasks:
         - id: "task 8.1"
           title: "Normalize keywords per source"
@@ -248,7 +248,7 @@ plan:
             Convert keywords to a normalized form (e.g., lowercase) and de-duplicate. Preserve original strings
             only for reporting if needed.
           dependencies: ["task 3.2"]
-          completed: false
+          completed: true
         - id: "task 8.2"
           title: "Implement match function for message content"
           summary: "Scan text and caption fields."
@@ -256,7 +256,7 @@ plan:
             Extract relevant fields from each message: text and caption. Perform case-insensitive substring
             checks against normalized keywords. Return match boolean and optionally which keyword matched.
           dependencies: ["task 8.1", "task 7"]
-          completed: false
+          completed: true
 
     - id: "task 9"
       title: "Implement forwarding with fallback behavior"
@@ -266,7 +266,7 @@ plan:
         Telegram restrictions (e.g., protected content), attempt a best-effort copy of text and media/caption
         if supported. Otherwise log a clear per-message error and continue.
       dependencies: ["task 5", "task 8"]
-      completed: false
+      completed: true
       subtasks:
         - id: "task 9.1"
           title: "Implement forward attempt"
@@ -275,7 +275,7 @@ plan:
             Use the library's forward mechanism to preserve original message/media where allowed.
             Capture and classify failures that suggest forwarding restrictions.
           dependencies: ["task 5"]
-          completed: false
+          completed: true
         - id: "task 9.2"
           title: "Implement copy fallback"
           summary: "Copy content when forwarding is blocked."
@@ -284,7 +284,7 @@ plan:
             library supports re-sending. If media cannot be copied, send a text-only fallback if appropriate
             and log what was not transferable.
           dependencies: ["task 9.1"]
-          completed: false
+          completed: true
         - id: "task 9.3"
           title: "Ensure idempotent forwarding per cursor"
           summary: "Never forward already-processed messages."
@@ -293,7 +293,7 @@ plan:
             subsequent runs never re-process messages at or below the stored cursor position. Avoid duplicates
             even with overlapping sources by relying on per-source cursor logic.
           dependencies: ["task 7", "task 9.1", "task 9.2", "task 4.3"]
-          completed: false
+          completed: true
 
     - id: "task 10"
       title: "Implement run mode orchestration"
@@ -303,7 +303,7 @@ plan:
         forward matches to destination, collect per-source stats, and persist cursor updates atomically at the
         end (or per-source safely) without corrupting state.
       dependencies: ["task 7", "task 8", "task 9", "task 4"]
-      completed: false
+      completed: true
       subtasks:
         - id: "task 10.1"
           title: "Per-source processing loop"
@@ -312,7 +312,7 @@ plan:
             For each source: compute fetch window, stream messages, apply matching, forward/copy as needed,
             track counts, and compute the updated cursor position. Ensure exceptions are caught per-source.
           dependencies: ["task 7", "task 8", "task 9", "task 5.3"]
-          completed: false
+          completed: true
         - id: "task 10.2"
           title: "Atomic cursor persistence integration"
           summary: "Persist updates safely after processing."
@@ -320,7 +320,7 @@ plan:
             Update the in-memory config cursor fields per source and write back using atomic storage.
             Ensure that partial runs do not leave the config corrupted and do not regress cursor values.
           dependencies: ["task 10.1", "task 4.2", "task 4.3"]
-          completed: false
+          completed: true
 
     - id: "task 11"
       title: "Implement CLI interface and commands"
@@ -329,7 +329,7 @@ plan:
         Build a CLI with at least two commands: list-chats and run. Support --config override. Implement log
         level configuration and ensure consistent exit codes for success vs fatal failures.
       dependencies: ["task 6", "task 10"]
-      completed: false
+      completed: true
       subtasks:
         - id: "task 11.1"
           title: "Implement CLI argument parsing"
@@ -338,7 +338,7 @@ plan:
             Implement parsing for commands: list-chats and run. Add global options: --config and --log-level.
             Ensure help text is available and accurate.
           dependencies: ["task 6", "task 10"]
-          completed: false
+          completed: true
         - id: "task 11.2"
           title: "Wire commands to implementations"
           summary: "Connect CLI to core modules."
@@ -346,7 +346,7 @@ plan:
             Connect list-chats to dialog/topic enumeration and run to the orchestrator. Ensure proper
             initialization of logging and Telegram client per command.
           dependencies: ["task 11.1"]
-          completed: false
+          completed: true
 
     - id: "task 12"
       title: "Implement structured logging and observability"
@@ -355,7 +355,7 @@ plan:
         Implement structured logging that includes start/end markers, per-source counts (scanned/matched/forwarded),
         and detailed errors. Ensure secrets are not logged. Support configurable log level.
       dependencies: ["task 11"]
-      completed: false
+      completed: true
       subtasks:
         - id: "task 12.1"
           title: "Logging setup module"
@@ -364,7 +364,7 @@ plan:
             Implement logging configuration with a structured format (e.g., JSON lines or key-value format).
             Ensure log level can be set via CLI and defaults are reasonable.
           dependencies: ["task 11"]
-          completed: false
+          completed: true
         - id: "task 12.2"
           title: "Per-source summary logging"
           summary: "Emit counts and errors for each source."
@@ -372,7 +372,7 @@ plan:
             Log per-source metrics: scanned, matched, forwarded, and any failures with enough context to debug
             (chat_id/topic_id/message_id) without leaking sensitive data.
           dependencies: ["task 10", "task 12.1"]
-          completed: false
+          completed: true
 
     - id: "task 13"
       title: "Harden reliability and edge case handling"
@@ -381,7 +381,7 @@ plan:
         Ensure correct behavior for: media-only messages (scan captions), sources with no messages, forwarding
         restrictions, and stopping/restarting safely. Confirm that only new messages are processed (not edits).
       dependencies: ["task 10", "task 12", "task 5.2"]
-      completed: false
+      completed: true
       subtasks:
         - id: "task 13.1"
           title: "Handle empty/no-recent-message sources"
@@ -390,7 +390,7 @@ plan:
             Ensure run mode handles sources where the fetch returns zero messages. Do not update cursor and do
             not treat as error; log a clean summary.
           dependencies: ["task 10"]
-          completed: false
+          completed: true
         - id: "task 13.2"
           title: "Handle media-only messages"
           summary: "Scan captions; skip if no caption."
@@ -398,7 +398,7 @@ plan:
             Ensure messages with no text but with media are evaluated via caption. If neither text nor caption
             exists, skip without error and count as scanned.
           dependencies: ["task 8.2", "task 10"]
-          completed: false
+          completed: true
         - id: "task 13.3"
           title: "Confirm edited message policy"
           summary: "Ignore edits by default."
@@ -406,7 +406,7 @@ plan:
             Ensure the processing loop is based on new message arrival order and does not attempt to detect or
             re-process edited messages. Document the behavior clearly in logs or documentation.
           dependencies: ["task 10"]
-          completed: false
+          completed: true
         - id: "task 13.4"
           title: "Verify forward restriction fallbacks"
           summary: "Log and continue on failures."
@@ -414,7 +414,7 @@ plan:
             Ensure that forwarding failures do not terminate the run. Validate that copy fallback is attempted
             when applicable and that clear per-message errors are logged otherwise.
           dependencies: ["task 9", "task 12.2"]
-          completed: false
+          completed: true
 
     - id: "task 14"
       title: "Create macOS runner shell script"
@@ -423,7 +423,7 @@ plan:
         Implement a sh runner that creates/uses a local virtual environment, installs dependencies if needed,
         runs the CLI, and exits cleanly without requiring the user to manage Python setup manually.
       dependencies: ["task 11"]
-      completed: false
+      completed: true
       subtasks:
         - id: "task 14.1"
           title: "Implement venv bootstrap and dependency install"
@@ -432,7 +432,7 @@ plan:
             Create a script that checks for a venv directory, creates it if missing, installs requirements,
             then executes the CLI with passed arguments. Ensure it uses the system python3 and works on macOS.
           dependencies: ["task 11"]
-          completed: false
+          completed: true
         - id: "task 14.2"
           title: "Ensure safe output and exit codes"
           summary: "Do not leak secrets; propagate errors."
@@ -440,7 +440,7 @@ plan:
             Ensure the runner does not echo environment variables or session values. Propagate program exit codes
             so automation and CI can detect failures.
           dependencies: ["task 14.1", "task 12"]
-          completed: false
+          completed: true
 
     - id: "task 15"
       title: "Add tests and validation checklist"
@@ -449,7 +449,7 @@ plan:
         Implement focused tests for keyword matching, cursor progression, atomic write behavior, and config
         validation. Provide a manual validation checklist for Telegram interactions (dialogs/topics/forwarding).
       dependencies: ["task 4", "task 8", "task 9", "task 10", "task 14"]
-      completed: false
+      completed: true
       subtasks:
         - id: "task 15.1"
           title: "Unit tests for matcher and config normalization"
@@ -458,7 +458,7 @@ plan:
             Add tests for keyword normalization and deterministic matching across text/caption fields, including
             duplicates and empty strings handling.
           dependencies: ["task 8", "task 3.2"]
-          completed: false
+          completed: true
         - id: "task 15.2"
           title: "Unit tests for cursor and atomic writes"
           summary: "Validate idempotency and crash-safety."
@@ -466,7 +466,7 @@ plan:
             Add tests that ensure cursor does not regress, does not reprocess messages, and that atomic write
             strategy preserves valid YAML on simulated interruption scenarios.
           dependencies: ["task 4"]
-          completed: false
+          completed: true
         - id: "task 15.3"
           title: "Manual validation checklist for Telegram behaviors"
           summary: "Validate list-chats, topic handling, forwarding fallback."
@@ -474,4 +474,4 @@ plan:
             Provide a checklist to validate on a real account: list-chats output, topic_id resolution, first-run
             24h behavior, incremental runs, restricted forward handling, and per-source error isolation.
           dependencies: ["task 6", "task 10", "task 9", "task 12"]
-          completed: false
+          completed: true
