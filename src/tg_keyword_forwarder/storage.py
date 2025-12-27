@@ -53,7 +53,7 @@ def apply_cursor_updates(config: Config, cursor_updates: dict[SourceKey, CursorS
 
 def atomic_write_yaml(path: Path, data: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    serialized = yaml.safe_dump(data, sort_keys=False)
+    serialized = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
     fd, tmp_path = tempfile.mkstemp(prefix=f".{path.name}.", dir=str(path.parent))
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
