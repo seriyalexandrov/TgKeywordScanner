@@ -36,6 +36,7 @@ Known limitations and fallbacks:
 destination_chat_id: 123456789
 sources:
   - chat_id: 11111111
+    chat_name: "My Supergroup" # optional label
     topic_id: 987654321   # optional, for forum topics only
     keywords:
       - "keyword A"

@@ -41,7 +41,15 @@ def test_apply_cursor_updates_does_not_regress(tmp_path):
     }
     config = Config(
         destination_chat_id=1,
-        sources=[SourceConfig(chat_id=2, topic_id=None, keywords=["foo"], cursor=CursorState(10, None))],
+        sources=[
+            SourceConfig(
+                chat_id=2,
+                chat_name=None,
+                topic_id=None,
+                keywords=["foo"],
+                cursor=CursorState(10, None),
+            )
+        ],
         raw=raw,
         path=path,
     )

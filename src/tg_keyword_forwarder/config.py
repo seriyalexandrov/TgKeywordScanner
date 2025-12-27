@@ -25,6 +25,7 @@ class CursorState:
 @dataclass(frozen=True)
 class SourceConfig:
     chat_id: int
+    chat_name: Optional[str]
     topic_id: Optional[int]
     keywords: list[str]
     cursor: CursorState
@@ -89,12 +90,14 @@ def _parse_config(raw: dict[str, Any], path: Path) -> Config:
         if not isinstance(item, dict):
             raise ValueError(f"Source at index {idx} must be a mapping")
         chat_id = _require_int(item, "chat_id", context=f"source[{idx}]")
+        chat_name = _optional_str(item.get("chat_name"), context=f"source[{idx}].chat_name")
         topic_id = _optional_int(item.get("topic_id"), context=f"source[{idx}].topic_id")
         keywords = _normalize_keywords(item.get("keywords"), context=f"source[{idx}].keywords")
         cursor = _parse_cursor(item.get("cursor"), context=f"source[{idx}].cursor")
         sources.append(
             SourceConfig(
                 chat_id=chat_id,
+                chat_name=chat_name,
                 topic_id=topic_id,
                 keywords=keywords,
                 cursor=cursor,
@@ -119,6 +122,16 @@ def _optional_int(value: Any, context: Optional[str] = None) -> Optional[int]:
         location = context or "config"
         raise ValueError(f"{location} must be an integer")
     return value
+
+
+def _optional_str(value: Any, context: Optional[str] = None) -> Optional[str]:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        location = context or "config"
+        raise ValueError(f"{location} must be a string")
+    cleaned = value.strip()
+    return cleaned or None
 
 
 def _normalize_keywords(raw: Any, context: str) -> list[str]:

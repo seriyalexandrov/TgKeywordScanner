@@ -17,6 +17,7 @@ Example:
 destination_chat_id: 123456789
 sources:
   - chat_id: 11111111
+    chat_name: "My Supergroup" # optional label
     keywords:
       - "keyword A"
       - "keyword B"
