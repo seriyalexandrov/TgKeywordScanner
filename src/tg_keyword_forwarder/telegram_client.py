@@ -153,6 +153,9 @@ class TelegramClientWrapper:
         elif text:
             await retry_async(lambda: self._client.send_message(destination_chat_id, text))
 
+    async def send_text_message(self, destination_chat_id: int, text: str) -> None:
+        await retry_async(lambda: self._client.send_message(destination_chat_id, text))
+
     async def iter_recent_messages(
         self,
         entity: Any,

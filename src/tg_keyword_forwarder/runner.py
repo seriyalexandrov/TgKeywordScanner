@@ -110,6 +110,7 @@ async def _process_source(
     keywords = normalize_keywords(source.keywords)
     max_message_id: Optional[int] = None
     max_timestamp: Optional[datetime] = None
+    header_sent = False
 
     async for message in client.iter_messages_since(
         source.chat_id,
@@ -130,6 +131,20 @@ async def _process_source(
         if not match.matched:
             continue
         stats.matched += 1
+        if not header_sent:
+            header_text = _format_source_header(source, message)
+            try:
+                await client.send_text_message(destination_chat_id, header_text)
+            except Exception as exc:  # noqa: BLE001
+                log_event(
+                    LOGGER,
+                    "source_header_error",
+                    chat_id=source.chat_id,
+                    topic_id=source.topic_id,
+                    error=str(exc),
+                )
+                stats.errors.append(f"source_header_error={exc}")
+            header_sent = True
         result = await forward_with_fallback(client, destination_chat_id, message)
         if result.forwarded or result.copied:
             stats.forwarded += 1
@@ -176,3 +191,27 @@ def _format_topic_line(chat_id: int, topic_id: int, title: str) -> str:
 
 def _format_topic_hint(chat_id: int, topic_id: int) -> str:
     return f"TOPIC_HINT\t{chat_id}\t{topic_id}"
+
+
+def _format_source_header(source: SourceConfig, message: types.Message) -> str:
+    title = source.chat_name or _extract_message_chat_title(message) or str(source.chat_id)
+    return f"Source chat: {title}"
+
+
+def _extract_message_chat_title(message: types.Message) -> Optional[str]:
+    chat = getattr(message, "chat", None)
+    if chat is None:
+        return None
+    title = getattr(chat, "title", None)
+    if isinstance(title, str):
+        cleaned = title.strip()
+        if cleaned:
+            return cleaned
+    if isinstance(chat, types.User):
+        name_parts = [part for part in [chat.first_name, chat.last_name] if part]
+        if name_parts:
+            return " ".join(name_parts)
+        username = getattr(chat, "username", None)
+        if isinstance(username, str) and username.strip():
+            return username.strip()
+    return None
