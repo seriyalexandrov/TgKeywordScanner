@@ -1,0 +1,15 @@
+Iteration 2 Requirements (Delta + Enrichment)
+
+Scope and intent
+- This iteration extends the baseline requirements in .ai-guidelines/requirements.txt.
+- The tool remains a local macOS Python CLI that scans configured Telegram sources for keywords and forwards matches to one destination chat.
+- All behavior and constraints in the baseline requirements and tasks plan remain in effect unless explicitly overridden here.
+
+New functional requirement: destination chat pre-clean
+FR2-1 Before any activity that touches the destination chat during run command, the tool must delete all existing messages in the destination chat.
+  - This deletion must occur before:
+    - Fetching/processing messages from sources (run mode).
+    - Forwarding any matched message to the destination.
+  - The deletion must be the first operation in any run that will forward messages.
+  - If deletion is not permitted (e.g., insufficient rights), the tool must log a clear error and stop the run (do not process sources).
+
