@@ -10,6 +10,12 @@
 - Configure a new source with no cursor and run `scripts/run.sh run`.
 - Confirm only messages from the last 24 hours are scanned.
 
+## Destination pre-clean
+
+- Populate the destination chat with test messages, then run `scripts/run.sh run`.
+- Confirm the destination chat is cleared before any forwarding occurs.
+- Remove delete permissions from the destination chat and confirm the run stops with a clear error.
+
 ## Incremental behavior
 
 - Run `scripts/run.sh run` twice without new messages and confirm no forwards occur.

@@ -66,6 +66,7 @@ def compute_fetch_window(cursor: CursorState) -> FetchWindow:
 
 
 async def run_sources(client: TelegramClientWrapper, config: Config) -> RunSummary:
+    await _preclean_destination(client, config.destination_chat_id)
     ensure_unique_sources(config.sources)
     cursor_updates: dict[Tuple[int, Optional[int]], CursorState] = {}
     source_stats: list[SourceStats] = []
@@ -98,6 +99,16 @@ async def run_sources(client: TelegramClientWrapper, config: Config) -> RunSumma
 
     log_event(LOGGER, "run_end", sources=len(config.sources))
     return RunSummary(sources=source_stats)
+
+
+async def _preclean_destination(client: TelegramClientWrapper, destination_chat_id: int) -> None:
+    log_event(LOGGER, "destination_preclean_start", chat_id=destination_chat_id)
+    try:
+        deleted = await client.delete_all_messages(destination_chat_id)
+    except Exception as exc:  # noqa: BLE001
+        log_event(LOGGER, "destination_preclean_failed", chat_id=destination_chat_id, error=str(exc))
+        raise RuntimeError(f"Destination chat pre-clean failed: {exc}") from exc
+    log_event(LOGGER, "destination_preclean_complete", chat_id=destination_chat_id, deleted=deleted)
 
 
 async def _process_source(

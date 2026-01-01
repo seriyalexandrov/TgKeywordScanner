@@ -11,7 +11,7 @@ plan:
         Determine how to delete all existing messages in the destination chat before any run processing.
         Clarify API usage, expected rate limits, and the exact abort behavior when deletion is not permitted.
       dependencies: []
-      completed: false
+      completed: true
       subtasks:
         - id: "task 1.1"
           title: "Define deletion strategy"
@@ -20,7 +20,7 @@ plan:
             Decide how to enumerate and delete all destination messages, including handling large histories,
             rate limits, and any library constraints for batch deletions.
           dependencies: []
-          completed: false
+          completed: true
         - id: "task 1.2"
           title: "Define abort and logging rules"
           summary: "Specify failure behavior and error reporting."
@@ -28,7 +28,7 @@ plan:
             Specify the exact error message and exit behavior when deletion is not permitted or fails,
             ensuring the run stops before any source processing or forwarding.
           dependencies: []
-          completed: false
+          completed: true
 
     - id: "task 2"
       title: "Implement destination chat pre-clean"
@@ -38,7 +38,7 @@ plan:
         or processing any sources, and before forwarding. If deletion fails, log a clear error and
         terminate the run.
       dependencies: ["task 1"]
-      completed: false
+      completed: true
       subtasks:
         - id: "task 2.1"
           title: "Add Telegram client deletion helper"
@@ -47,7 +47,7 @@ plan:
             Implement a client helper that iterates messages in the destination chat and deletes them,
             respecting rate limits and returning success/failure for orchestration.
           dependencies: ["task 1.1"]
-          completed: false
+          completed: true
         - id: "task 2.2"
           title: "Integrate pre-clean into run orchestration"
           summary: "Run deletion first and abort on failure."
@@ -55,7 +55,7 @@ plan:
             Ensure the pre-clean step is the first operation in any run that forwards messages.
             If deletion fails or is not permitted, log the error and stop without processing sources.
           dependencies: ["task 2.1", "task 1.2"]
-          completed: false
+          completed: true
         - id: "task 2.3"
           title: "Add structured logging for pre-clean"
           summary: "Log deletion start/end and failures."
@@ -63,7 +63,7 @@ plan:
             Emit structured logs for deletion start, success, counts (if available), and failure details
             without leaking sensitive data.
           dependencies: ["task 2.1"]
-          completed: false
+          completed: true
 
     - id: "task 3"
       title: "Update tests and validation"
@@ -72,7 +72,7 @@ plan:
         Add or update tests for the run abort behavior when destination deletion fails and extend manual
         validation steps to include pre-clean verification.
       dependencies: ["task 2"]
-      completed: false
+      completed: true
       subtasks:
         - id: "task 3.1"
           title: "Test run abort on deletion failure"
@@ -81,7 +81,7 @@ plan:
             Add unit tests or integration-style tests that simulate a deletion failure and assert that
             no source processing or forwarding occurs.
           dependencies: ["task 2.2"]
-          completed: false
+          completed: true
         - id: "task 3.2"
           title: "Update manual validation checklist"
           summary: "Add pre-clean steps to validation."
@@ -89,4 +89,4 @@ plan:
             Extend the validation checklist to confirm destination chat is cleared before run processing
             and that failures stop the run with a clear error.
           dependencies: ["task 2.2"]
-          completed: false
+          completed: true

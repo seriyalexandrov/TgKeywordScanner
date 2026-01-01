@@ -156,6 +156,22 @@ class TelegramClientWrapper:
     async def send_text_message(self, destination_chat_id: int, text: str) -> None:
         await retry_async(lambda: self._client.send_message(destination_chat_id, text))
 
+    async def delete_all_messages(self, destination_chat_id: int, batch_size: int = 100) -> int:
+        deleted = 0
+        batch: list[int] = []
+        async for message in self._client.iter_messages(destination_chat_id):
+            if not isinstance(message.id, int):
+                continue
+            batch.append(message.id)
+            if len(batch) >= batch_size:
+                await retry_async(lambda: self._client.delete_messages(destination_chat_id, batch))
+                deleted += len(batch)
+                batch = []
+        if batch:
+            await retry_async(lambda: self._client.delete_messages(destination_chat_id, batch))
+            deleted += len(batch)
+        return deleted
+
     async def iter_recent_messages(
         self,
         entity: Any,
